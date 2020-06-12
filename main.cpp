@@ -16,6 +16,7 @@
 
 #include "mainwindow.h"
 #include <QApplication>
+#include <curl/curl.h>
 
 int
 main(int argc, char *argv[]) {
@@ -24,7 +25,9 @@ main(int argc, char *argv[]) {
     QCoreApplication::setOrganizationName("IPCF-CNR");
     QCoreApplication::setApplicationName("UPS-Alarm");
     QCoreApplication::setApplicationVersion("0.1");
-
+    CURLcode res = curl_global_init(CURL_GLOBAL_ALL);
+    if(res != 0)
+        exit(EXIT_FAILURE);
     QApplication a(argc, argv);
     MainWindow w;
     w.show();

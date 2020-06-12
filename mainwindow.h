@@ -62,14 +62,13 @@ public slots:
 protected:
     void initLayout();
     size_t payloadSource(void *ptr, size_t size, size_t nmemb, void *userp);
-    void buildPayload();
+    void buildPayload(QString sSubject, QString sMessage);
     bool openLogFile();
     void restoreSettings();
     void saveSettings();
-    void periodicUpdateWidgets();
     void logMessage(QString sMessage);
     void closeEvent(QCloseEvent *event);
-    bool sendAlarmMail();
+    bool sendMail(QString sSubject, QString sMessage);
 
 protected:
     CURL* curl;

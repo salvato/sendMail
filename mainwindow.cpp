@@ -33,9 +33,8 @@
 size_t
 payloadSource(void *ptr, size_t size, size_t nmemb, void *userp) {
     struct upload_status* upload_ctx = (struct upload_status*)userp;
-    if((size == 0) || (nmemb == 0) || ((size*nmemb) < 1)) {
+    if((size == 0) || (nmemb == 0) || ((size*nmemb) < 1))
         return 0;
-    }
     if(upload_ctx->lines_read >= upload_ctx->pPayload->count())
         return 0;
     QString sLine = QString("%1\r\n").arg(upload_ctx->pPayload->at(upload_ctx->lines_read));
@@ -87,6 +86,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Check the Thermostat Status every minute
     updateTimer.start(60000);
+//#ifndef QT_DEBUG
+    logMessage("System Started");
+    if(sendMail("UPS Temperature Alarm System [INFO]",
+                "The Alarm System Has Been Restarted"))
+        logMessage("Message Sent");
+    else
+        logMessage("Unable to Send the Message");
+//#endif
 }
 
 
@@ -102,8 +109,8 @@ MainWindow::initLayout() {
     console.setReadOnly(true);
     console.document()->setMaximumBlockCount(100);
     QPalette p = palette();
-    p.setColor(QPalette::Base, Qt::darkBlue);
-    p.setColor(QPalette::Text, Qt::yellow);
+    p.setColor(QPalette::Base, Qt::white);
+    p.setColor(QPalette::Text, Qt::black);
     console.setPalette(p);
     pMainLayout->addWidget(&console,     0, 0, 4, 3);
     pMainLayout->addWidget(&setupButton, 4, 0, 1, 1);
@@ -125,7 +132,15 @@ MainWindow::closeEvent(QCloseEvent *event) {
                        .arg("Are you sure ?");
     if(QMessageBox::question(this, "Quit Program", sMessage) == QMessageBox::Yes)
     {
+        logMessage("Switching Off the Program");
+        updateTimer.stop();
+        resendTimer.stop();
         saveSettings();
+        if(sendMail("UPS Temperature Alarm System [INFO]",
+                    "The Alarm System Has Been Switched Off"))
+            logMessage("Message Sent");
+        else
+            logMessage("Unable to Send the Message");
         if(gpioHostHandle >= 0)
             pigpio_stop(gpioHostHandle);
         if(pLogFile) {
@@ -133,7 +148,7 @@ MainWindow::closeEvent(QCloseEvent *event) {
                 pLogFile->flush();
             }
             pLogFile->deleteLater();
-            pLogFile = Q_NULLPTR;
+            pLogFile = nullptr;
         }
         closelog();
         event->accept();
@@ -210,45 +225,46 @@ MainWindow::saveSettings() {
 
 
 void
-MainWindow::periodicUpdateWidgets() {
-
-}
-
-
-void
-MainWindow::buildPayload() {
+MainWindow::buildPayload(QString sSubject, QString sMessage) {
     payloadText.clear();
 
-    payloadText.append(QString("Date: %1").arg(currentTime.currentDateTime().toString(Qt::RFC2822Date)));
-    payloadText.append(QString("To: %1").arg(configureDialog.getToDestination()));
+    payloadText.append(QString("Date: %1")
+                       .arg(currentTime.currentDateTime().toString(Qt::RFC2822Date)));
+    payloadText.append(QString("To: %1")
+                       .arg(configureDialog.getToDestination()));
     QString sUsername = configureDialog.getUsername();
-    QString sMailFrom = "<" + sUsername + "@" +
-                        configureDialog.getMailServer() + ">";
-    payloadText.append(QString("From: %1").arg(sMailFrom));
+    QString sMailFrom = QString("<%1@%2>")
+                        .arg(sUsername)
+                        .arg(configureDialog.getMailServer());
+    payloadText.append(QString("From: %1")
+                       .arg(sMailFrom));
     QString sCc = configureDialog.getCcDestination();
     if(sCc != QString()) {
-        payloadText.append(QString("Cc: <%1>").arg(sCc));
+        payloadText.append(QString("Cc: <%1>")
+                           .arg(sCc));
     }
     QString sCc1 = configureDialog.getCc1Destination();
     if(sCc1 != QString()) {
-        payloadText.append(QString("Cc: <%1>").arg(sCc1));
+        payloadText.append(QString("Cc: <%1>")
+                           .arg(sCc1));
     }
     QString sMessageId = QString("Message-ID: <%1@ipcf.cnr.it>")
             .arg(currentTime.currentDateTime().toString().replace(QChar(' '), QChar('#')));
     payloadText.append(sMessageId);
-    payloadText.append("Subject: UPS Temperature Alarm");
+    payloadText.append(QString("Subject: %1")
+                       .arg(sSubject));
     // empty line to divide headers from body, see RFC5322
     payloadText.append(QString());
     // Body
     payloadText.append(currentTime.currentDateTime().toString());
-    QStringList sMessageBody = configureDialog.getMessage().split("\n");
+    QStringList sMessageBody = sMessage.split("\n");
     payloadText.append(sMessageBody);
 }
 
 
 bool
-MainWindow::sendAlarmMail() {
-    buildPayload();
+MainWindow::sendMail(QString sSubject, QString sMessage) {
+    buildPayload(sSubject, sMessage);
     upload_ctx.lines_read = 0;
     upload_ctx.pPayload = &payloadText;
 
@@ -298,6 +314,7 @@ MainWindow::sendAlarmMail() {
 
         // Free the list of recipients
         curl_slist_free_all(recipients);
+        recipients = 0;
         curl_easy_cleanup(curl);
     }
     return (res==CURLE_OK);
@@ -317,7 +334,8 @@ MainWindow::onSetupClicked() {
 void
 MainWindow::onSendClicked() {
     logMessage("Sending a Test Message");
-    if(sendAlarmMail())
+    if(sendMail("UPS Temperature Alarm System [INFO]",
+                "This is JUST A TEST MESSAGE"))
         logMessage("Message Sent");
     else
         logMessage("Unable to Send the Message");
@@ -330,7 +348,8 @@ MainWindow::onTimeToCheckTemperature() {
     if(sensorStatus == 0) {
         updateTimer.stop();
         logMessage("TEMPERATURE ALARM !");
-        if(sendAlarmMail())
+        if(sendMail("UPS Temperature Alarm System [ALARM!]",
+                    configureDialog.getMessage()))
             logMessage("Message Sent");
         else
             logMessage("Unable to Send the Message");
@@ -350,7 +369,9 @@ MainWindow::onTimeToResendAlarm() {
         updateTimer.start(60000);
     }
     else { // Still on Alarm !
-        if(sendAlarmMail())
+        logMessage("TEMPERATURE ALARM STILL ON!");
+        if(sendMail("UPS Temperature Alarm System [ALARM!]",
+                    configureDialog.getMessage()))
             logMessage("Message Sent");
         else
             logMessage("Unable to Send the Message");
