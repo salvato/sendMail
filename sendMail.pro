@@ -24,13 +24,26 @@ DEFINES += QT_DEPRECATED_WARNINGS
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
 
 
-SOURCES += main.cpp \
-    configuredialog.cpp
+SOURCES += main.cpp
+SOURCES += configuredialog.cpp
+SOURCES += axesdialog.cpp
+SOURCES += AxisFrame.cpp
+SOURCES += AxisLimits.cpp
+SOURCES += DataSetProperties.cpp
+SOURCES += datastream2d.cpp
+SOURCES += plot2d.cpp
+SOURCES += plotpropertiesdlg.cpp
 SOURCES += mainwindow.cpp
 
 
-HEADERS += mainwindow.h \
-    configuredialog.h
+HEADERS += mainwindow.h
+HEADERS += axesdialog.h
+HEADERS += AxisFrame.h
+HEADERS += AxisLimits.h
+HEADERS += DataSetProperties.h
+HEADERS += datastream2d.h
+HEADERS += plot2d.h
+HEADERS += plotpropertiesdlg.h
 
 
 LIBS += -lcurl
@@ -41,3 +54,6 @@ LIBS += -lpigpiod_if2
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    resources.qrc
