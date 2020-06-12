@@ -58,6 +58,7 @@ public slots:
     void onSetupClicked();
     void onSendClicked();
     void onTimeToCheckTemperature();
+    void onTimeToReadTemperature();
     void onTimeToResendAlarm();
 
 protected:
@@ -71,6 +72,7 @@ protected:
     void logMessage(QString sMessage);
     void closeEvent(QCloseEvent *event);
     bool sendMail(QString sSubject, QString sMessage);
+    bool is18B20connected();
 
 protected:
     CURL* curl;
@@ -80,6 +82,7 @@ protected:
 
 private:
     QFile*           pLogFile;
+    QString          sSensorFilePath;
     ConfigureDialog  configureDialog;
     QSettings        settings;
     QGridLayout*     pMainLayout;
@@ -88,8 +91,14 @@ private:
     QPlainTextEdit   console;
     QTimer           updateTimer;
     QTimer           resendTimer;
+    QTimer           readTemperatureTimer;
+    QDateTime        startTime;
     QDateTime        currentTime;
     int              gpioHostHandle;
     int              gpioSensorPin;
+    bool             b18B20exist;
+    QString          sTdata;
+
+
 };
 #endif // MAINWINDOW_H

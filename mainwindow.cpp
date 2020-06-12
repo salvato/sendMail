@@ -109,6 +109,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     gpioHostHandle = -1;
     gpioSensorPin  = 23; // BCM 23: pin 16 in the 40 pins GPIO connector
+    // DS18B20 connected to BCM 4:  pin 7  in the 40 pins GPIO connector
     res            = CURLE_OK;
 
     if(!openLogFile()) { // If unable to open Log File then Log to syslog
@@ -118,7 +119,8 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     initLayout();
-    initTemperaturePlot();
+    if(is18B20connected())
+        initTemperaturePlot();
 
     // Initialize the GPIO handler
     gpioHostHandle = pigpio_start((char*)"localhost", (char*)"8888");
@@ -142,8 +144,14 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&resendTimer, SIGNAL(timeout()),
             this, SLOT(onTimeToResendAlarm()));
 
+    startTime = QDateTime::currentDateTime();
     // Check the Thermostat Status every minute
     updateTimer.start(60000);
+    if(b18B20exist) {
+        connect(&readTemperatureTimer, SIGNAL(timeout()),
+                this, SLOT(onTimeToReadTemperature()));
+        readTemperatureTimer.start(6000);
+    }
 #ifndef QT_DEBUG
     logMessage("System Started");
     if(sendMail("UPS Temperature Alarm System [INFO]",
@@ -152,6 +160,47 @@ MainWindow::MainWindow(QWidget *parent)
     else
         logMessage("Unable to Send the Message");
 #endif
+}
+
+bool
+MainWindow::is18B20connected() {
+    b18B20exist = false;
+    QString s1WireDir = "/sys/bus/w1/devices/";
+    QDir dir1Wire(s1WireDir);
+    if(dir1Wire.exists()) {
+        dir1Wire.setFilter(QDir::Dirs);
+        QStringList filter;
+        filter.append(QString("10-*"));
+        filter.append(QString("28-*"));
+        QStringList subDirs = dir1Wire.entryList(filter);
+
+        if(subDirs.count() != 0) {
+            for(int i=0; i<subDirs.count(); i++) {
+                sSensorFilePath = dir1Wire.absolutePath() +
+                                  QString("/") +
+                                  subDirs.at(i) +
+                                  QString("/w1_slave");
+                QFile* pSensorFile = new QFile(sSensorFilePath);
+                if(!pSensorFile->open(QIODevice::Text|QIODevice::ReadOnly)) {
+                    delete pSensorFile;
+                    pSensorFile = nullptr;
+                    continue;
+                }
+                sTdata = QString(pSensorFile->readAll());
+                if(sTdata.contains("YES")) {
+                    b18B20exist = true;
+                    pSensorFile->close();
+                    delete pSensorFile;
+                    pSensorFile = nullptr;
+                    break;
+                }
+                pSensorFile->close();
+                delete pSensorFile;
+                pSensorFile = nullptr;
+            }
+        }
+    }
+    return b18B20exist;
 }
 
 
@@ -183,11 +232,11 @@ MainWindow::initTemperaturePlot() {
     QString sTemperaturePlotLabel = QString("T[°C] -vs- time[m]");
     pPlotTemperature = new Plot2D(nullptr, sTemperaturePlotLabel);
     pPlotTemperature->setMaxPoints(24*60); // 24h se un punto ogni minuto
-    pPlotTemperature->NewDataSet(1,//Id
+    pPlotTemperature->NewDataSet(1, //Id
                                  3, //Pen Width
-                                 QColor(255, 128, 64),// Color
-                                 Plot2D::ipoint,// Symbol
-                                 "T"// Title
+                                 QColor(255, 128, 64), // Color
+                                 Plot2D::ipoint, // Symbol
+                                 "T" // Title
                                  );
     pPlotTemperature->SetShowDataSet(1, true);
     pPlotTemperature->SetShowTitle(1, true);
@@ -210,15 +259,18 @@ MainWindow::closeEvent(QCloseEvent *event) {
     {
         logMessage("Switching Off the Program");
         updateTimer.stop();
+        readTemperatureTimer.stop();
         resendTimer.stop();
         saveSettings();
         if(pPlotTemperature != nullptr)
             delete pPlotTemperature;
+#ifndef QT_DEBUG
         if(sendMail("UPS Temperature Alarm System [INFO]",
                     "The Alarm System Has Been Switched Off"))
             logMessage("Message Sent");
         else
             logMessage("Unable to Send the Message");
+#endif
         if(gpioHostHandle >= 0)
             pigpio_stop(gpioHostHandle);
         if(pLogFile) {
@@ -455,5 +507,29 @@ MainWindow::onTimeToResendAlarm() {
             logMessage("Message Sent");
         else
             logMessage("Unable to Send the Message");
+    }
+}
+
+
+void
+MainWindow::onTimeToReadTemperature() {
+    if(b18B20exist) {
+        QFile SensorFile(sSensorFilePath);
+        if(!SensorFile.open(QIODevice::Text|QIODevice::ReadOnly)) {
+            b18B20exist = false;
+            return;
+        }
+        sTdata = QString(SensorFile.readAll());
+        if(sTdata.contains("YES")) {
+            int iPos = sTdata.indexOf("t=");
+            if(iPos > 0) {
+                pPlotTemperature->NewPoint(1,
+                                           double(startTime.secsTo(QDateTime::currentDateTime())/60.0),
+                                           double(sTdata.mid(iPos+2).toDouble()/1000.0));
+                pPlotTemperature->UpdatePlot();
+
+            }
+        }
+        SensorFile.close();
     }
 }
