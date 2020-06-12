@@ -13,6 +13,58 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+/*
+To add a self-signed certificate, use CURLOPT_CAINFO
+
+To retrieve the SSL public certificate of the site, use:
+
+openssl s_client -connect posta.ipcf.cnr.it:465 | tee logfile
+
+The certificate is the portion marked by
+----BEGIN CERTIFICATE---- and
+---END CERTIFICATE----.
+
+Save that certificate into a file.
+
+Step 1:	Identify which directory your OpenSSL installation uses.
+pi@raspberrypi:~ $ openssl version -d
+OPENSSLDIR: "/usr/lib/ssl"
+
+Step 2: Change to that directory and list the directory contents.
+        You should see a directory called certs.
+pi@raspberrypi:~ $ cd /usr/lib/ssl && ls -al
+drwxr-xr-x  3 root root  4096 mar 17 17:39 .
+drwxr-xr-x 95 root root 12288 giu 10 14:31 ..
+lrwxrwxrwx  1 root root    14 mar 29  2018 certs -> /etc/ssl/certs
+drwxr-xr-x  2 root root  4096 mar 17 17:39 misc
+lrwxrwxrwx  1 root root    20 set 27  2019 openssl.cnf -> /etc/ssl/openssl.cnf
+lrwxrwxrwx  1 root root    16 mar 29  2018 private -> /etc/ssl/private
+
+Step 3: Change to that directory.
+pi@raspberrypi:/usr/lib/ssl $ cd certs
+
+List the directory contents.
+You should see from the symlinks that the certificates are actually
+stored in /usr/share/ca-certificates.
+
+Step 4: Change to /usr/share/ca-certificates directory and add
+        your self-signed certificate there, (ex: your.cert.name.crt)
+
+Step 5: Change to /etc directory and edit the file ca-certificates.conf.
+pi@raspberrypi:~ $ cd /etc
+pi@raspberrypi: /etc $ nano ca-certificates.conf
+
+Add your.cert.name.crt to the file (ca-certificates.conf) and save it.
+
+Last Step: Execute the program update-ca-certificates –fresh.
+Note: You might like to backup /etc/ssl/certs before executing the command.
+
+    root@ubuntu:# update-ca-certificates --fresh
+    Clearing symlinks in /etc/ssl/certs...done.
+    Updating certificates in /etc/ssl/certs....done.
+    Running hooks in /etc/ca-certificates/update.d....done.
+*/
+
 #include "mainwindow.h"
 
 #include <QCoreApplication>
@@ -86,14 +138,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Check the Thermostat Status every minute
     updateTimer.start(60000);
-//#ifndef QT_DEBUG
+#ifndef QT_DEBUG
     logMessage("System Started");
     if(sendMail("UPS Temperature Alarm System [INFO]",
                 "The Alarm System Has Been Restarted"))
         logMessage("Message Sent");
     else
         logMessage("Unable to Send the Message");
-//#endif
+#endif
 }
 
 
@@ -274,6 +326,8 @@ MainWindow::sendMail(QString sSubject, QString sMessage) {
                 .arg(configureDialog.getUsername())
                 .arg(configureDialog.getMailServer());
         curl_easy_setopt(curl, CURLOPT_URL, mailserverURL.toLatin1().constData());
+//        curl_easy_setopt(curl, CURLOPT_CAINFO, "/home/pi/posta_ipcf_cnr_it.crt");
+//        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
@@ -314,7 +368,7 @@ MainWindow::sendMail(QString sSubject, QString sMessage) {
 
         // Free the list of recipients
         curl_slist_free_all(recipients);
-        recipients = 0;
+        recipients = nullptr;
         curl_easy_cleanup(curl);
     }
     return (res==CURLE_OK);
