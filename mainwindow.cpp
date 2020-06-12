@@ -83,7 +83,7 @@ Note: You might like to backup /etc/ssl/certs before executing the command.
 #include <syslog.h>
 
 #include "pigpiod_if2.h"
-#include <time.h>
+#include "plot2d.h"
 
 
 size_t
@@ -104,6 +104,7 @@ payloadSource(void *ptr, size_t size, size_t nmemb, void *userp) {
 MainWindow::MainWindow(QWidget *parent)
     : QWidget(parent)
     , recipients(nullptr)
+    , pPlotTemperature(nullptr)
     , pLogFile(nullptr)
 {
     gpioHostHandle = -1;
@@ -117,6 +118,7 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     initLayout();
+    initTemperaturePlot();
 
     // Initialize the GPIO handler
     gpioHostHandle = pigpio_start((char*)"localhost", (char*)"8888");
@@ -176,6 +178,24 @@ MainWindow::initLayout() {
 }
 
 
+void
+MainWindow::initTemperaturePlot() {
+    QString sTemperaturePlotLabel = QString("T[°C] -vs- time[m]");
+    pPlotTemperature = new Plot2D(nullptr, sTemperaturePlotLabel);
+    pPlotTemperature->setMaxPoints(24*60); // 24h se un punto ogni minuto
+    pPlotTemperature->NewDataSet(1,//Id
+                                 3, //Pen Width
+                                 QColor(255, 128, 64),// Color
+                                 Plot2D::ipoint,// Symbol
+                                 "T"// Title
+                                 );
+    pPlotTemperature->SetShowDataSet(1, true);
+    pPlotTemperature->SetShowTitle(1, true);
+    pPlotTemperature->SetLimits(0.0, 1.0, 0.0, 1.0, true, true, false, false);
+    pPlotTemperature->show();
+}
+
+
 MainWindow::~MainWindow() {
 }
 
@@ -192,6 +212,8 @@ MainWindow::closeEvent(QCloseEvent *event) {
         updateTimer.stop();
         resendTimer.stop();
         saveSettings();
+        if(pPlotTemperature != nullptr)
+            delete pPlotTemperature;
         if(sendMail("UPS Temperature Alarm System [INFO]",
                     "The Alarm System Has Been Switched Off"))
             logMessage("Message Sent");

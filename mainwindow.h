@@ -32,6 +32,7 @@
 QT_FORWARD_DECLARE_CLASS(QFile)
 QT_FORWARD_DECLARE_CLASS(QHBoxLayout)
 QT_FORWARD_DECLARE_CLASS(QGridLayout)
+QT_FORWARD_DECLARE_CLASS(Plot2D)
 
 
 struct
@@ -61,6 +62,7 @@ public slots:
 
 protected:
     void initLayout();
+    void initTemperaturePlot();
     size_t payloadSource(void *ptr, size_t size, size_t nmemb, void *userp);
     void buildPayload(QString sSubject, QString sMessage);
     bool openLogFile();
@@ -74,6 +76,7 @@ protected:
     CURL* curl;
     CURLcode res;
     struct curl_slist* recipients;
+    Plot2D* pPlotTemperature;
 
 private:
     QFile*           pLogFile;

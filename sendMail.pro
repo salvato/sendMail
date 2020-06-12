@@ -37,6 +37,7 @@ SOURCES += mainwindow.cpp
 
 
 HEADERS += mainwindow.h
+HEADERS += configuredialog.h
 HEADERS += axesdialog.h
 HEADERS += AxisFrame.h
 HEADERS += AxisLimits.h
@@ -55,5 +56,4 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-RESOURCES += \
-    resources.qrc
+RESOURCES += resources.qrc
