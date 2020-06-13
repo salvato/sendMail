@@ -1,0 +1,13 @@
+[Unit]
+Description=UPS Temperature Alarm System
+After= graphical.target network-online.target
+
+[Service]
+ExecStart=/home/pi/sendMail
+Restart=always
+RestartSec=60s
+KillMode=process
+TimeoutSec=infinity
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,29 @@
+Create a upsAlarm.service file to start the program at boot:
+
+$ sudo nano /lib/systemd/system/upsAlarm.service
+
+
+
+[Unit]
+Description=UPS Temperature Alarm System
+After= graphical.target network-online.target
+
+[Service]
+ExecStart=/home/pi/sendMail
+Restart=always
+RestartSec=60s
+KillMode=process
+TimeoutSec=infinity
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+We need to tell systemd to recognize our service, so enter:
+
+$ sudo systemctl daemon-reload
+
+We then need to tell systemd that we want our service to start on boot:
+
+$ sudo systemctl enable upsAlarm.service
