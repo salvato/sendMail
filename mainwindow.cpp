@@ -107,6 +107,7 @@ MainWindow::MainWindow(QWidget *parent)
     , pPlotTemperature(nullptr)
     , pLogFile(nullptr)
 {
+    setWindowIcon(QIcon(":/Alarm.png"));
     gpioHostHandle = -1;
     gpioSensorPin  = 23; // BCM 23: pin 16 in the 40 pins GPIO connector
     // DS18B20 connected to BCM 4:  pin 7  in the 40 pins GPIO connector
@@ -150,7 +151,7 @@ MainWindow::MainWindow(QWidget *parent)
     if(b18B20exist) {
         connect(&readTemperatureTimer, SIGNAL(timeout()),
                 this, SLOT(onTimeToReadTemperature()));
-        readTemperatureTimer.start(6000);
+        readTemperatureTimer.start(60000);
     }
 #ifndef QT_DEBUG
     logMessage("System Started");

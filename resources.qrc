@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>plot.png</file>
+        <file>Alarm.png</file>
     </qresource>
 </RCC>
