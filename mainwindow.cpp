@@ -14,61 +14,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-// sudo apt-get install libcurl4-openssl-dev
-
-
-/*
-To add a self-signed certificate, use CURLOPT_CAINFO
-
-To retrieve the SSL public certificate of the site, use:
-
-openssl s_client -connect posta.ipcf.cnr.it:465 | tee logfile
-
-The certificate is the portion marked by
-----BEGIN CERTIFICATE---- and
----END CERTIFICATE----.
-
-Save that certificate into a file.
-
-Step 1:	Identify which directory your OpenSSL installation uses.
-pi@raspberrypi:~ $ openssl version -d
-OPENSSLDIR: "/usr/lib/ssl"
-
-Step 2: Change to that directory and list the directory contents.
-        You should see a directory called certs.
-pi@raspberrypi:~ $ cd /usr/lib/ssl && ls -al
-drwxr-xr-x  3 root root  4096 mar 17 17:39 .
-drwxr-xr-x 95 root root 12288 giu 10 14:31 ..
-lrwxrwxrwx  1 root root    14 mar 29  2018 certs -> /etc/ssl/certs
-drwxr-xr-x  2 root root  4096 mar 17 17:39 misc
-lrwxrwxrwx  1 root root    20 set 27  2019 openssl.cnf -> /etc/ssl/openssl.cnf
-lrwxrwxrwx  1 root root    16 mar 29  2018 private -> /etc/ssl/private
-
-Step 3: Change to that directory.
-pi@raspberrypi:/usr/lib/ssl $ cd certs
-
-List the directory contents.
-You should see from the symlinks that the certificates are actually
-stored in /usr/share/ca-certificates.
-
-Step 4: Change to /usr/share/ca-certificates directory and add
-        your self-signed certificate there, (ex: your.cert.name.crt)
-
-Step 5: Change to /etc directory and edit the file ca-certificates.conf.
-pi@raspberrypi:~ $ cd /etc
-pi@raspberrypi: /etc $ nano ca-certificates.conf
-
-Add your.cert.name.crt to the file (ca-certificates.conf) and save it.
-
-Last Step: Execute the program update-ca-certificates –fresh.
-Note: You might like to backup /etc/ssl/certs before executing the command.
-
-    root@ubuntu:# update-ca-certificates --fresh
-    Clearing symlinks in /etc/ssl/certs...done.
-    Updating certificates in /etc/ssl/certs....done.
-    Running hooks in /etc/ca-certificates/update.d....done.
-*/
-
 #include "mainwindow.h"
 
 #include <QCoreApplication>
@@ -230,7 +175,7 @@ MainWindow::initLayout() {
 
 void
 MainWindow::initTemperaturePlot() {
-    QString sTemperaturePlotLabel = QString("T[°C] -vs- time[m]");
+    QString sTemperaturePlotLabel = QString("T[°C] -vs- time[h]");
     pPlotTemperature = new Plot2D(nullptr, sTemperaturePlotLabel);
     pPlotTemperature->setMaxPoints(24*60); // 24h se un punto ogni minuto
     pPlotTemperature->NewDataSet(1, //Id
@@ -525,7 +470,7 @@ MainWindow::onTimeToReadTemperature() {
             int iPos = sTdata.indexOf("t=");
             if(iPos > 0) {
                 pPlotTemperature->NewPoint(1,
-                                           double(startTime.secsTo(QDateTime::currentDateTime())/60.0),
+                                           double(startTime.secsTo(QDateTime::currentDateTime())/3600.0),
                                            double(sTdata.mid(iPos+2).toDouble()/1000.0));
                 pPlotTemperature->UpdatePlot();
 

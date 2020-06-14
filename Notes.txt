@@ -27,3 +27,97 @@ $ sudo systemctl daemon-reload
 We then need to tell systemd that we want our service to start on boot:
 
 $ sudo systemctl enable upsAlarm.service
+
+
+
+
+To install libcurl-dev:
+    $ sudo apt-get install libcurl4-openssl-dev
+
+
+To add a self-signed certificate, use CURLOPT_CAINFO
+
+To retrieve the SSL public certificate of the site, use:
+
+    $ openssl s_client -connect posta.ipcf.cnr.it:465 | tee logfile
+
+The certificate is the portion marked by
+----BEGIN CERTIFICATE---- and
+---END CERTIFICATE----.
+
+Save that certificate into a file.
+
+Step 1:	Identify which directory your OpenSSL installation uses.
+    $ openssl version -d
+    OPENSSLDIR: "/usr/lib/ssl"
+
+Step 2: Change to that directory and list the directory contents.
+        You should see a directory called certs.
+    $ cd /usr/lib/ssl && ls -al
+    drwxr-xr-x  3 root root  4096 mar 17 17:39 .
+    drwxr-xr-x 95 root root 12288 giu 10 14:31 ..
+    lrwxrwxrwx  1 root root    14 mar 29  2018 certs -> /etc/ssl/certs
+    drwxr-xr-x  2 root root  4096 mar 17 17:39 misc
+    lrwxrwxrwx  1 root root    20 set 27  2019 openssl.cnf -> /etc/ssl/openssl.cnf
+    lrwxrwxrwx  1 root root    16 mar 29  2018 private -> /etc/ssl/private
+
+Step 3: Change to that directory.
+    $ cd certs
+
+List the directory contents.
+You should see from the symlinks that the certificates are actually
+stored in /usr/share/ca-certificates.
+
+Step 4: Change to /usr/share/ca-certificates directory and add
+        your self-signed certificate there, (ex: your.cert.name.crt)
+
+Step 5: Change to /etc directory and edit the file ca-certificates.conf.
+    $ cd /etc
+    $ nano ca-certificates.conf
+
+Add your.cert.name.crt to the file (ca-certificates.conf) and save it.
+
+Last Step: Execute the program update-ca-certificates –fresh.
+Note: You might like to backup /etc/ssl/certs before executing the command.
+
+    $ sudo update-ca-certificates --fresh
+    Clearing symlinks in /etc/ssl/certs...done.
+    Updating certificates in /etc/ssl/certs....done.
+    Running hooks in /etc/ca-certificates/update.d....done.
+
+
+WATCHDOG:
+    $ sudo apt-get install watchdog
+    $ sudo nano /etc/watchdog.conf
+    Uncomment the line that starts with #watchdog-device by removing the hash (#) to enable the watchdog daemon to use the watchdog device. Uncomment the line that says #max-load-1 = 24 by removing the hash symbol to reboot the device if the load goes over 24 over 1 minute. A load of 25 of one minute means that you would have needed 25 Raspberry Pis to complete that task in 1 minute. You may tweak this value to your liking.
+
+In some cases you should also add the following line to allow watchdog
+even to start-up:
+
+    watchdog-timeout = 50
+
+The timeout defaults to 60 seconds, but this results sometimes in not
+starting up at all (probably a watchdog bug).
+Do not set this value lower than 15.
+
+If you want to check if the program is not stuck add lines like these
+to check if a given file has not changed in 300s
+(change the interval at your discrection)
+
+    file    = /tmp/UPS_Alarm.log
+    change  = 300
+
+
+    $ sudo service watchdog start
+
+
+
+
+A Shell Script...
+
+#!/bin/sh
+mailreceiver="upsgenerale@posta.ipcf.cnr.it"
+today=$(date)
+message="Your Pi has rebooted at $today."
+echo $message > message.txt
+mutt -s "UPS-Alarm [INFO]" ${mailreceiver} < message.txt && rm message.txt
