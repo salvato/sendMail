@@ -110,6 +110,9 @@ to check if a given file has not changed in 300s
 
     $ sudo service watchdog start
 
+To restart the service at every boot:
+
+    $ sudo systemctl enable watchdog
 
 
 
