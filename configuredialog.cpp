@@ -28,6 +28,7 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
     ccLabel.setText("Cc:");
     cc1Label.setText("Cc1:");
     textLabel.setText("Message to Send:");
+    maxTemperatureLabel.setText("Alarm Threshold");
     passwordLabel.setText("Password:");
     passwordEdit.setEchoMode(QLineEdit::Password);
 
