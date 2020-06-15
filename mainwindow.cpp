@@ -453,6 +453,11 @@ void
 MainWindow::onTimeToResendAlarm() {
     if(!bOnAlarm) {
         logMessage("Temperature Alarm Ceased");
+        if(sendMail("UPS Temperature Alarm System [INFO!]",
+                    "Temperature Alarm Ceased"))
+            logMessage("UPS Temperature Alarm System [INFO!]: Message Sent");
+        else
+            logMessage("UPS Temperature Alarm System [INFO!]: Unable to Send the Message");
         resendTimer.stop();
         bAlarmMessageSent = false;
     }
