@@ -34,6 +34,13 @@ $ sudo systemctl enable upsAlarm.service
 To install libcurl-dev:
     $ sudo apt-get install libcurl4-openssl-dev
 
+Other requested libraries:
+    libcurl.so.4
+    libpigpiod_if2.so
+    libQt5Widgets.so.5
+    libQt5Gui.so.5
+    libQt5Core.so.5
+    libGLESv2.so.2
 
 To add a self-signed certificate, use CURLOPT_CAINFO
 
