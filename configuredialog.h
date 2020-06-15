@@ -50,6 +50,7 @@ public:
 public slots:
     void onCancel();
     void onOk();
+    void onMaxTemperatureEdit_textChanged(const QString &arg1);
 
 protected:
     void initLayout();
@@ -71,6 +72,7 @@ private:
     QLabel           ccLabel;
     QLabel           cc1Label;
     QLabel           mailServerLabel;
+    QLabel           maxTemperatureLabel;
 
     QLineEdit        usernameEdit;
     QLineEdit        passwordEdit;
@@ -78,6 +80,7 @@ private:
     QLineEdit        ccEdit;
     QLineEdit        cc1Edit;
     QLineEdit        mailServerEdit;
+    QLineEdit        maxTemperatureEdit;
 
     QLabel           textLabel;
     QPlainTextEdit   textMessage;
@@ -86,6 +89,7 @@ private:
 
     QString sNormalStyle;
     QString sErrorStyle;
+    bool bCanClose;
 };
 
 #endif // CONFIGUREDIALOG_H

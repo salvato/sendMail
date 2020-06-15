@@ -31,6 +31,14 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
     passwordLabel.setText("Password:");
     passwordEdit.setEchoMode(QLineEdit::Password);
 
+    // Setup the QLineEdit styles
+    sNormalStyle = usernameEdit.styleSheet();
+    sErrorStyle  = "QLineEdit { ";
+    sErrorStyle += "color: rgb(255, 255, 255);";
+    sErrorStyle += "background: rgb(255, 0, 0);";
+    sErrorStyle += "selection-background-color: rgb(128, 128, 255);";
+    sErrorStyle += "}";
+
     getSettings();
     initLayout();
 }
@@ -53,6 +61,7 @@ ConfigureDialog::getSettings() {
     toEdit.setText(settings.value(toLabel.text(), "").toString());
     ccEdit.setText(settings.value(ccLabel.text(), "").toString());
     cc1Edit.setText(settings.value(cc1Label.text(), "").toString());
+    maxTemperatureEdit.setText(settings.value(maxTemperatureLabel.text(), "28.0").toString());
     QString sMessageText = settings.value(textLabel.text(), "").toString();
     textMessage.clear();
     textMessage.appendPlainText(sMessageText);
@@ -63,12 +72,13 @@ void
 ConfigureDialog::saveSettings() {
     settings.setValue(QString("Configuration Dialog"), saveGeometry());
 
-    settings.setValue(usernameLabel.text(),   usernameEdit.text());
-    settings.setValue(passwordLabel.text(),   passwordEdit.text());
-    settings.setValue(mailServerLabel.text(), mailServerEdit.text());
-    settings.setValue(toLabel.text(), toEdit.text());
-    settings.setValue(ccLabel.text(), ccEdit.text());
-    settings.setValue(cc1Label.text(), cc1Edit.text());
+    settings.setValue(usernameLabel.text(),      usernameEdit.text());
+    settings.setValue(passwordLabel.text(),      passwordEdit.text());
+    settings.setValue(mailServerLabel.text(),    mailServerEdit.text());
+    settings.setValue(toLabel.text(),            toEdit.text());
+    settings.setValue(ccLabel.text(),            ccEdit.text());
+    settings.setValue(cc1Label.text(),           cc1Edit.text());
+    settings.setValue(maxTemperatureEdit.text(), maxTemperatureEdit.text());
     QString sMessageText = textMessage.toPlainText();
     settings.setValue(textLabel.text(), sMessageText);
 }
@@ -89,11 +99,13 @@ ConfigureDialog::initLayout() {
 
     pLayout->addWidget(&toLabel,         2, 0, 1, 1);
     pLayout->addWidget(&toEdit,          2, 1, 1, 1);
+    pLayout->addWidget(&ccLabel,         2, 2, 1, 1);
+    pLayout->addWidget(&ccEdit,          2, 3, 1, 1);
 
-    pLayout->addWidget(&ccLabel,         3, 0, 1, 1);
-    pLayout->addWidget(&ccEdit,          3, 1, 1, 1);
-    pLayout->addWidget(&cc1Label,        3, 2, 1, 1);
-    pLayout->addWidget(&cc1Edit,         3, 3, 1, 1);
+    pLayout->addWidget(&cc1Label,            3, 0, 1, 1);
+    pLayout->addWidget(&cc1Edit,             3, 1, 1, 1);
+    pLayout->addWidget(&maxTemperatureLabel, 3, 2, 1, 1);
+    pLayout->addWidget(&maxTemperatureEdit,  3, 3, 1, 1);
 
     pLayout->addWidget(&textLabel,       4, 0, 1, 1);
     pLayout->addWidget(&textMessage,     5, 0, 2, 4);
@@ -124,6 +136,10 @@ ConfigureDialog::connectSignals() {
             this, SLOT(onOk()));
     connect(pButtonBox, SIGNAL(rejected()),
             this, SLOT(onCancel()));
+
+    // QLineEdit
+    connect(&maxTemperatureEdit, SIGNAL(textChanged(const QString)),
+            this, SLOT(onMaxTemperatureEdit_textChanged(const QString)));
 }
 
 
@@ -136,8 +152,23 @@ ConfigureDialog::onCancel() {
 
 void
 ConfigureDialog::onOk() {
+    if(!bCanClose)
+        return;
     saveSettings();
     accept();
+}
+
+
+void
+ConfigureDialog::onMaxTemperatureEdit_textChanged(const QString &arg1) {
+    double dTemp = arg1.toDouble();
+    bCanClose = (dTemp > 0) && (dTemp < 30);
+    if(bCanClose) {
+        maxTemperatureEdit.setStyleSheet(sNormalStyle);
+    }
+    else {
+        maxTemperatureEdit.setStyleSheet(sErrorStyle);
+    }
 }
 
 
