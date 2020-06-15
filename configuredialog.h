@@ -46,6 +46,7 @@ public:
     QString getCcDestination();
     QString getCc1Destination();
     QString getMessage();
+    double  getMaxTemperature();
 
 public slots:
     void onCancel();

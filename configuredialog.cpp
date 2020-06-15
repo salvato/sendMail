@@ -172,8 +172,15 @@ ConfigureDialog::onMaxTemperatureEdit_textChanged(const QString &arg1) {
 }
 
 
+double
+ConfigureDialog::getMaxTemperature() {
+    return maxTemperatureEdit.text().toDouble();
+}
+
+
 void
 ConfigureDialog::setToolTips() {
+    maxTemperatureEdit.setToolTip("Enter a value >0.0 and <30.0");
 }
 
 

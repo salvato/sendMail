@@ -58,7 +58,6 @@ public slots:
     void onSetupClicked();
     void onSendClicked();
     void onTimeToCheckTemperature();
-    void onTimeToReadTemperature();
     void onTimeToResendAlarm();
 
 protected:
@@ -73,6 +72,7 @@ protected:
     void closeEvent(QCloseEvent *event);
     bool sendMail(QString sSubject, QString sMessage);
     bool is18B20connected();
+    double readTemperature();
 
 protected:
     CURL* curl;
@@ -97,8 +97,8 @@ private:
     int              gpioHostHandle;
     int              gpioSensorPin;
     bool             b18B20exist;
+    bool             bOnAlarm;
+    bool             bAlarmMessageSent;
     QString          sTdata;
-
-
 };
 #endif // MAINWINDOW_H

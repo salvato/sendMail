@@ -57,6 +57,8 @@ MainWindow::MainWindow(QWidget *parent)
     gpioSensorPin  = 23; // BCM 23: pin 16 in the 40 pins GPIO connector
     // DS18B20 connected to BCM 4:  pin 7  in the 40 pins GPIO connector
     res            = CURLE_OK;
+    bOnAlarm          = false;
+    bAlarmMessageSent = false;
 
     if(!openLogFile()) { // If unable to open Log File then Log to syslog
         QString sAppName = QFileInfo(QCoreApplication::applicationFilePath()).fileName();
@@ -93,20 +95,17 @@ MainWindow::MainWindow(QWidget *parent)
     startTime = QDateTime::currentDateTime();
     // Check the Thermostat Status every minute
     updateTimer.start(60000);
-    if(b18B20exist) {
-        connect(&readTemperatureTimer, SIGNAL(timeout()),
-                this, SLOT(onTimeToReadTemperature()));
-        readTemperatureTimer.start(60000);
-    }
+
 #ifndef QT_DEBUG
     logMessage("System Started");
     if(sendMail("UPS Temperature Alarm System [INFO]",
                 "The Alarm System Has Been Restarted"))
-        logMessage("Message Sent");
+        logMessage("UPS Temperature Alarm System [INFO]: Message Sent");
     else
-        logMessage("Unable to Send the Message");
+        logMessage("UPS Temperature Alarm System [INFO]: Unable to Send the Message");
 #endif
 }
+
 
 bool
 MainWindow::is18B20connected() {
@@ -422,60 +421,78 @@ MainWindow::onSendClicked() {
 
 void
 MainWindow::onTimeToCheckTemperature() {
-    int sensorStatus = gpio_read(gpioHostHandle, gpioSensorPin);
-    if(sensorStatus == 0) {
-        updateTimer.stop();
+    bOnAlarm = (gpio_read(gpioHostHandle, gpioSensorPin) == 0);
+    if(b18B20exist) {
+        double temperature = readTemperature();
+        if(temperature > -300.0) {
+            bOnAlarm |= (temperature > configureDialog.getMaxTemperature());
+            pPlotTemperature->NewPoint(1,
+                                       double(startTime.secsTo(QDateTime::currentDateTime())/3600.0),
+                                       temperature);
+            pPlotTemperature->UpdatePlot();
+
+        }
+    }
+    if(bOnAlarm  && !bAlarmMessageSent) {
         logMessage("TEMPERATURE ALARM !");
         if(sendMail("UPS Temperature Alarm System [ALARM!]",
                     configureDialog.getMessage()))
-            logMessage("Message Sent");
+        {
+            bAlarmMessageSent = true;
+            logMessage("UPS Temperature Alarm System [ALARM!]: Message Sent");
+            // Start a timer to retransmit the alarm message every 30 minutes
+            resendTimer.start(1800000);
+        }
         else
-            logMessage("Unable to Send the Message");
-        // Start a timer to retransmit the alarm message every 30 minutes
-        resendTimer.start(1800000);
+            logMessage("PS Temperature Alarm System [ALARM!]: Unable to Send the Message");
     }
 }
 
 
 void
 MainWindow::onTimeToResendAlarm() {
-    int sensorStatus = gpio_read(gpioHostHandle, gpioSensorPin);
-    if(sensorStatus != 0) {
+    if(!bOnAlarm) {
         logMessage("Temperature Alarm Ceased");
         resendTimer.stop();
-        // Restart the timer to check the sensor status every 10 minutes
-        updateTimer.start(60000);
+        bAlarmMessageSent = false;
     }
     else { // Still on Alarm !
         logMessage("TEMPERATURE ALARM STILL ON!");
         if(sendMail("UPS Temperature Alarm System [ALARM!]",
                     configureDialog.getMessage()))
-            logMessage("Message Sent");
+            logMessage("TEMPERATURE ALARM STILL ON!: Message Sent");
         else
-            logMessage("Unable to Send the Message");
+            logMessage("TEMPERATURE ALARM STILL ON!: Unable to Send the Message");
     }
 }
 
 
-void
-MainWindow::onTimeToReadTemperature() {
+// Return the Temperature read from DS18B20 or a value
+// lower than -300.0 to signal an erratic sensor
+double
+MainWindow::readTemperature() {
+    double temperature = -999.9;
     if(b18B20exist) {
         QFile SensorFile(sSensorFilePath);
         if(!SensorFile.open(QIODevice::Text|QIODevice::ReadOnly)) {
             b18B20exist = false;
-            return;
+            logMessage("Temperature Sensor NOT Responding !");
+            if(sendMail("UPS Temperature Alarm System [WARNING!]",
+                        "Temperature Sensor NOT responding !"))
+                logMessage("UPS Temperature Alarm System [WARNING!]: Message Sent");
+            else
+                logMessage("UPS Temperature Alarm System [WARNING!]: Unable to Send the Message");
         }
-        sTdata = QString(SensorFile.readAll());
-        if(sTdata.contains("YES")) {
-            int iPos = sTdata.indexOf("t=");
-            if(iPos > 0) {
-                pPlotTemperature->NewPoint(1,
-                                           double(startTime.secsTo(QDateTime::currentDateTime())/3600.0),
-                                           double(sTdata.mid(iPos+2).toDouble()/1000.0));
-                pPlotTemperature->UpdatePlot();
-
+        else {
+            sTdata = QString(SensorFile.readAll());
+            if(sTdata.contains("YES")) {
+                int iPos = sTdata.indexOf("t=");
+                if(iPos > 0) {
+                    temperature = double(sTdata.mid(iPos+2).toDouble()/1000.0);
+                }
             }
+            SensorFile.close();
         }
-        SensorFile.close();
     }
+    return temperature;
 }
