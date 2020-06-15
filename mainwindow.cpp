@@ -460,9 +460,9 @@ MainWindow::onTimeToResendAlarm() {
         logMessage("TEMPERATURE ALARM STILL ON!");
         if(sendMail("UPS Temperature Alarm System [ALARM!]",
                     configureDialog.getMessage()))
-            logMessage("TEMPERATURE ALARM STILL ON!: Message Sent");
+            logMessage("UPS Temperature Alarm System [ALARM!]: Message Sent");
         else
-            logMessage("TEMPERATURE ALARM STILL ON!: Unable to Send the Message");
+            logMessage("UPS Temperature Alarm System [ALARM!]: Unable to Send the Message");
     }
 }
 
