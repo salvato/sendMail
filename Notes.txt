@@ -29,6 +29,7 @@ We then need to tell systemd that we want our service to start on boot:
 $ sudo systemctl enable upsAlarm.service
 
 
+Alternative library for GPIO: libgpiod
 
 
 To install libcurl-dev:
