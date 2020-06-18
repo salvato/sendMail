@@ -23,14 +23,22 @@ ConfigureDialog::ConfigureDialog(QWidget *parent)
     : QDialog(parent)
 {
     usernameLabel.setText("Username:");
+    usernameLabel.setAlignment(Qt::AlignRight);
     mailServerLabel.setText("Mail Server:");
+    mailServerLabel.setAlignment(Qt::AlignRight);
     toLabel.setText("To:");
+    toLabel.setAlignment(Qt::AlignRight);
     ccLabel.setText("Cc:");
+    ccLabel.setAlignment(Qt::AlignRight);
     cc1Label.setText("Cc1:");
-    textLabel.setText("Message to Send:");
+    cc1Label.setAlignment(Qt::AlignRight);
     maxTemperatureLabel.setText("Alarm Threshold");
+    maxTemperatureLabel.setAlignment(Qt::AlignRight);
     passwordLabel.setText("Password:");
+    passwordLabel.setAlignment(Qt::AlignRight);
     passwordEdit.setEchoMode(QLineEdit::Password);
+
+    textLabel.setText("Message to Send:");
 
     // Setup the QLineEdit styles
     sNormalStyle = usernameEdit.styleSheet();
@@ -73,13 +81,13 @@ void
 ConfigureDialog::saveSettings() {
     settings.setValue(QString("Configuration Dialog"), saveGeometry());
 
-    settings.setValue(usernameLabel.text(),      usernameEdit.text());
-    settings.setValue(passwordLabel.text(),      passwordEdit.text());
-    settings.setValue(mailServerLabel.text(),    mailServerEdit.text());
-    settings.setValue(toLabel.text(),            toEdit.text());
-    settings.setValue(ccLabel.text(),            ccEdit.text());
-    settings.setValue(cc1Label.text(),           cc1Edit.text());
-    settings.setValue(maxTemperatureEdit.text(), maxTemperatureEdit.text());
+    settings.setValue(usernameLabel.text(),       usernameEdit.text());
+    settings.setValue(passwordLabel.text(),       passwordEdit.text());
+    settings.setValue(mailServerLabel.text(),     mailServerEdit.text());
+    settings.setValue(toLabel.text(),             toEdit.text());
+    settings.setValue(ccLabel.text(),             ccEdit.text());
+    settings.setValue(cc1Label.text(),            cc1Edit.text());
+    settings.setValue(maxTemperatureLabel.text(), maxTemperatureEdit.text());
     QString sMessageText = textMessage.toPlainText();
     settings.setValue(textLabel.text(), sMessageText);
 }
